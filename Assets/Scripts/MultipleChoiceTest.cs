@@ -5,36 +5,45 @@ using UnityEngine.UI;
 
 public class MultipleChoiceTest : MonoBehaviour {
 
-	[Header("Answers for Question 1")]
-	public Button[] answers1 = new Button[4];
-
-	[Header("Number of Questions")]
-	public int numAnswers;
+	// [Header("Answers for Question 1")]
+	// public Button[] answers1 = new Button[4];
 
 	[Header("Submit Button")]
 	public GameObject submit;
 
-	private int[] selectedAnswers = new int[1];
-	private bool answeredAll = false;
+	[Header("Questions")]
+	public GameObject[] Q;
 
-	private void init() {
-		for (int i=0; i< numAnswers; i++){
-			string curAnswers = "answers" + (i+1);
-		}
-	}
+	[Header("Answer Key")]
+	public Button[] answerKey;
+
+	[Header("Exam")]
+	public GameObject exam;
+
+	[Header("Exam Results")]
+	public GameObject examResults;
+
+	private Button[] allAnswers;
+	private List<Button> answerList;
+
+	private Button[] selectedAnswers;	
+
 
 	// Use this for initialization
 	void Start () {
-		Debug.Log("answer " + selectedAnswers[0]);
-		for (int i=0; i< answers1.Length; i++){
-			Debug.Log(i);
-			AddListeners(answers1[i], answers1);	
-			// EditorGUILayout.PropertyField(answers1.GetArrayElementAtIndex(i)new GUIContent ("Answer "+ (i+1).ToString());
-		}
-		// foreach (Button answer in answers1){
+		 selectedAnswers = new Button[Q.Length];
+		 answerList = new List<Button>();
 
-		// }
-		
+		// add Listeners to each Question to select when clicked
+		for (int i=0; i<Q.Length; i++){
+			Component[] qAnswers = Q[i].GetComponentsInChildren(typeof(Button));
+			for (int j=0; j<qAnswers.Length; j++){
+				AddListeners(qAnswers[j].GetComponent<Button>(), i);
+				answerList.Add(qAnswers[j].GetComponent<Button>());
+			}
+		}
+
+		allAnswers = answerList.ToArray();
 	}
 	
 	// Update is called once per frame
@@ -42,36 +51,52 @@ public class MultipleChoiceTest : MonoBehaviour {
 		
 	}
 
-	public void AddListeners(Button answer, Button[] answers) {
-	    answer.onClick.AddListener(() => AnswerSelected(answer, answers));
+	public void AddListeners(Button answer, int qNumber) {
+	    answer.onClick.AddListener(() => AnswerSelected(answer, qNumber));
 	 }
 
-	public void AnswerSelected(Button answer, Button[] answers) {
-		 // Debug.Log("answer " + (answer));
-		foreach (Button b in answers){
-			if (b == answer){
-				b.transform.GetComponent<Text>().color = Color.green;
+	// Each button (answer) that is pressed will highlight green and be saved per question
+	public void AnswerSelected(Button answer, int qNumber) {
+		int range = qNumber*4;
+		for (int i=range; i<range+4; i++){
+			if (allAnswers[i] == answer){
+				allAnswers[i].transform.GetComponent<Text>().color = Color.green;
+				selectedAnswers[qNumber] = answer;
 			} else {
-				b.transform.GetComponent<Text>().color = Color.white;
+				allAnswers[i].transform.GetComponent<Text>().color = Color.white;
 			}
 		}
-		selectedAnswers[0] = System.Array.IndexOf(answers, answer) + 1;
-		Debug.Log("answer " + selectedAnswers[0]);
-		
-		//question.transform.GetComponent<Text>().color = Color.green;
+		Debug.Log("you chose " + selectedAnswers[qNumber]);
 
-		answeredAll = true;
-		foreach (int selectedAnswer in selectedAnswers){
-			if (selectedAnswer == 0){
-				answeredAll = false;
-			} 
-		}
-
-		if (answeredAll)
+		if (AllAnswered()){
+			PrintResults();
 			ActivateSubmitButton();
+		}
 	}
 
 	public void ActivateSubmitButton() {
 		submit.SetActive(true);
 	}
+
+	private bool AllAnswered(){
+		bool answeredAll = true;
+		foreach (Button selectedAnswer in selectedAnswers){
+			if (!selectedAnswer){
+				answeredAll = false;
+			} 
+		}
+		return answeredAll;
+	}
+
+	private void PrintResults() {
+		int correctAnswers = 0;
+
+		for (int i=0; i<Q.Length; i++){
+			if (selectedAnswers[i] == answerKey[i])
+				correctAnswers++;
+		}
+		examResults.GetComponentInChildren(typeof(Text)).GetComponent<Text>().text = "You got " + correctAnswers + " questions correct out of " + Q.Length;
+	}
+
+
 }
