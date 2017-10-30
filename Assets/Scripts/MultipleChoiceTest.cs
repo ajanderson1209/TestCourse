@@ -5,48 +5,58 @@ using UnityEngine.UI;
 
 public class MultipleChoiceTest : MonoBehaviour {
 
-
-	[Header("Submit Button")]
-	public GameObject submit;
-
-	[Header("Questions")]
-	public GameObject[] Q;
-
-	[Header("Answer Key")]
-	public Button[] answerKey;
-
 	//will change to dynamically take answers from one exam game object instead of each question game object
 	[Header("Exam")]
 	public GameObject exam;
 
+	[Header("Answer Key")]
+	public Button[] answerKey;
+
 	[Header("Exam Results")]
 	public GameObject examResults;
+
+	[Header("Submit Button")]
+	public GameObject submit;
 
 	[Header("Retake Exam Button")]
 	public GameObject retakeExam;
 
-	private Button[] allAnswers;
-	private List<Button> answerList;
+	[Header("ScrollBar")]
+	public GameObject scrollbar;
+
+	private Button[][] allAnswers;
 
 	private Button[] selectedAnswers;	
+
+	private Component[] questions;
+	private int numQuestions;
 
 
 	// adds listeners to each answer (button) and initialize answer key to number of questions
 	void Start () {
-		 selectedAnswers = new Button[Q.Length];
-		 answerList = new List<Button>();
+		questions = exam.GetComponentsInChildren(typeof(VerticalLayoutGroup));
+		numQuestions = questions.Length;
+		selectedAnswers = new Button[numQuestions];
+		allAnswers = new Button[numQuestions][];
 
-		for (int i=0; i<Q.Length; i++){
-			Component[] qAnswers = Q[i].GetComponentsInChildren(typeof(Button));
+		scrollbar.GetComponent<Scrollbar>().numberOfSteps = numQuestions;
+		//scrollbar.SetActive(false);
+
+		//each question object has a vertical layout group component and each answer object has a button component
+		for (int i=0; i<numQuestions; i++){
+			Component[] qAnswers = questions[i].GetComponentsInChildren(typeof(Button));
+			Button[] tempAnswers = new Button[qAnswers.Length];
 			for (int j=0; j<qAnswers.Length; j++){
 				AddListeners(qAnswers[j].GetComponent<Button>(), i);
-				answerList.Add(qAnswers[j].GetComponent<Button>());
+				tempAnswers[j] = qAnswers[j].GetComponent<Button>();
 			}
+			allAnswers[i] = tempAnswers;
 		}
+
 		// adds listener for retake button to reset the test
 		retakeExam.GetComponentInChildren(typeof(Button)).GetComponent<Button>().onClick.AddListener(() => ressetTest());
 		// stores all answers in a list then converts to an array for easier indexing
-		allAnswers = answerList.ToArray();
+		//allAnswers = answerList.ToArray();
 
 	}
 	
@@ -59,14 +69,16 @@ public class MultipleChoiceTest : MonoBehaviour {
 	 }
 
 	// Each button (answer) that is pressed will highlight green and be saved per question, resets any changed answers
+	// Currently only works with 4 multiple choice answers
 	public void AnswerSelected(Button answer, int qNumber) {
-		int range = qNumber*4;
-		for (int i=range; i<range+4; i++){
-			if (allAnswers[i] == answer){
-				allAnswers[i].transform.GetComponent<Text>().color = Color.green;
+		int range = allAnswers[qNumber].Length;
+
+		for (int i=0; i<range; i++){
+			if (allAnswers[qNumber][i] == answer){
+				allAnswers[qNumber][i].transform.GetComponent<Text>().color = Color.green;
 				selectedAnswers[qNumber] = answer;
 			} else {
-				allAnswers[i].transform.GetComponent<Text>().color = Color.white;
+				allAnswers[qNumber][i].transform.GetComponent<Text>().color = Color.white;
 			}
 		}
 
@@ -94,20 +106,20 @@ public class MultipleChoiceTest : MonoBehaviour {
 	private void PrintResults() {
 		int correctAnswers = 0;
 
-		for (int i=0; i<Q.Length; i++){
+		for (int i=0; i<numQuestions; i++){
 			if (selectedAnswers[i] == answerKey[i])
 				correctAnswers++;
 		}
-		examResults.GetComponentInChildren(typeof(Text)).GetComponent<Text>().text = "You got " + correctAnswers + " questions correct out of " + Q.Length;
+		examResults.GetComponentInChildren(typeof(Text)).GetComponent<Text>().text = "You got " + correctAnswers + " questions correct out of " + numQuestions;
 	}
 
 	public void ressetTest() {
-		selectedAnswers = new Button[Q.Length];
-		foreach (Button answer in allAnswers){
-			answer.transform.GetComponent<Text>().color = Color.white;
+		selectedAnswers = new Button[numQuestions];
+		foreach (Button[] question in allAnswers){
+			foreach(Button answer in question){
+				answer.transform.GetComponent<Text>().color = Color.white;
+			}
 		}
-
 	}
-
 
 }
